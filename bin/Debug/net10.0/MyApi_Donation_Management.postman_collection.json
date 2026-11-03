@@ -1,0 +1,405 @@
+{
+  "info": {
+    "_postman_id": "7ea678e8-faf0-4259-a646-50884256f27d",
+    "name": "MyApi | Donation Management + Health",
+    "description": "Postman Collection v2.1. Execute requests in numbered order using the Collection Runner. Requires a running local .NET API and endpoints GET /api/health, GET/POST /api/donations, PUT/DELETE /api/donations/{id}. Tests only a unique, newly created donation and deletes that record. Only uses collection variable testDonationId populated by step 02. If actual routing or response contracts differ, adjust accordingly.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Health check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "health"
+          ]
+        },
+        "description": "GET /api/health; verifies that the API responds. Does not check MySQL readiness."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Health endpoint returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "let data;",
+              "try { data = pm.response.json(); } catch (e) { data = null; }",
+              "pm.test(\"Health response contains expected status\", () => {",
+              "    pm.expect(data).to.be.an(\"object\");",
+              "    pm.expect(data.status).to.eql(\"Healthy\");",
+              "});",
+              "pm.test(\"Health response contains a valid UTC timestamp\", () => {",
+              "    pm.expect(data).to.be.an(\"object\");",
+              "    pm.expect(data.timestamp).to.be.a(\"string\");",
+              "    pm.expect(Number.isNaN(Date.parse(data.timestamp))).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Create test donation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/donations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "donations"
+          ]
+        },
+        "description": "Creates a unique temporary donation. Stores its ID in collection variable testDonationId. Requires POST /api/donations to return an ID in JSON.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 100.25,\n  \"donorName\": \"{{testDonorName}}\",\n  \"isAnonymous\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Start a new test run without reusing any previous record ID.",
+              "pm.collectionVariables.unset(\"testDonationId\");",
+              "const uniqueDonor = `Postman QA ${Date.now()}`;",
+              "pm.collectionVariables.set(\"testDonorName\", uniqueDonor);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Create returns HTTP 200 or 201\", () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "let data;",
+              "try { data = pm.response.json(); } catch (e) { data = null; }",
+              "pm.test(\"Create returns the new donation ID\", () => {",
+              "    pm.expect(data).to.be.an(\"object\");",
+              "    pm.expect(data.id).to.be.a(\"number\");",
+              "    pm.expect(data.id).to.be.above(0);",
+              "});",
+              "if (data && Number.isSafeInteger(data.id) && data.id > 0 && [200,201].includes(pm.response.code)) {",
+              "    pm.collectionVariables.set(\"testDonationId\", String(data.id));",
+              "}",
+              "pm.test(\"Created donation has the correct amount and name\", () => {",
+              "    pm.expect(data.amount).to.eql(100.25);",
+              "    pm.expect(data.donorName).to.eql(pm.collectionVariables.get(\"testDonorName\"));",
+              "    pm.expect(data.isAnonymous).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - List and verify created donation",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/donations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "donations"
+          ]
+        },
+        "description": "Checks that POST persisted the test record."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"testDonationId\");",
+              "if (!id || !/^\\d+$/.test(String(id))) {",
+              "    console.warn(\"No donation ID created by this test run; skipping dependent request.\");",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"List donations returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "let data;",
+              "try { data = pm.response.json(); } catch (e) { data = null; }",
+              "pm.test(\"List returns an array\", () => pm.expect(data).to.be.an(\"array\"));",
+              "const id = Number(pm.collectionVariables.get(\"testDonationId\"));",
+              "const saved = Array.isArray(data) ? data.find(d => d.id === id) : null;",
+              "pm.test(\"New donation is persisted\", () => {",
+              "    pm.expect(saved, `Donation ${id} missing`).to.exist;",
+              "    pm.expect(saved.amount).to.eql(100.25);",
+              "    pm.expect(saved.donorName).to.eql(pm.collectionVariables.get(\"testDonorName\"));",
+              "    pm.expect(saved.isAnonymous).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Update to anonymous donation",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/donations/{{testDonationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "donations",
+            "{{testDonationId}}"
+          ]
+        },
+        "description": "Updates only the ID created by step 02. Requires PUT /api/donations/{id}.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 150.75,\n  \"donorName\": \"{{testDonorName}}\",\n  \"isAnonymous\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"testDonationId\");",
+              "if (!id || !/^\\d+$/.test(String(id))) {",
+              "    console.warn(\"No donation ID created by this test run; skipping dependent request.\");",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Update returns HTTP 200 or 204\", () => pm.expect([200, 204]).to.include(pm.response.code));",
+              "if (pm.response.code === 200 && pm.response.text().trim()) {",
+              "    let data;",
+              "    try { data = pm.response.json(); } catch (e) { data = null; }",
+              "    pm.test(\"Update does not expose an anonymous donor\", () => {",
+              "        pm.expect(data).to.be.an(\"object\");",
+              "        pm.expect(data.isAnonymous).to.eql(true);",
+              "        pm.expect(data.donorName).to.eql(\"Anonymous\");",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Verify update and privacy",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/donations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "donations"
+          ]
+        },
+        "description": "Privacy regression: a donation marked anonymous must not expose its original donor name in the list response."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"testDonationId\");",
+              "if (!id || !/^\\d+$/.test(String(id))) {",
+              "    console.warn(\"No donation ID created by this test run; skipping dependent request.\");",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"List after update returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "let data;",
+              "try { data = pm.response.json(); } catch (e) { data = null; }",
+              "const id = Number(pm.collectionVariables.get(\"testDonationId\"));",
+              "const saved = Array.isArray(data) ? data.find(d => d.id === id) : null;",
+              "pm.test(\"Updated donation is persisted\", () => {",
+              "    pm.expect(saved, `Donation ${id} missing`).to.exist;",
+              "    pm.expect(saved.amount).to.eql(150.75);",
+              "    pm.expect(saved.isAnonymous).to.eql(true);",
+              "});",
+              "pm.test(\"Anonymous donor identity is not returned\", () => {",
+              "    pm.expect(saved).to.exist;",
+              "    pm.expect(saved.donorName).to.eql(\"Anonymous\");",
+              "    pm.expect(JSON.stringify(saved)).not.to.include(pm.collectionVariables.get(\"testDonorName\"));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Delete temporary test donation",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/donations/{{testDonationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "donations",
+            "{{testDonationId}}"
+          ]
+        },
+        "description": "Deletes ONLY the test record created by step 02. Do not modify the ID manually to point to business records."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"testDonationId\");",
+              "if (!id || !/^\\d+$/.test(String(id))) {",
+              "    console.warn(\"No donation ID created by this test run; skipping dependent request.\");",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Delete returns HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Confirm test donation deleted",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/donations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "donations"
+          ]
+        },
+        "description": "Verifies deletion and clears generated collection variables on success."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"testDonationId\");",
+              "if (!id || !/^\\d+$/.test(String(id))) {",
+              "    console.warn(\"No donation ID created by this test run; skipping dependent request.\");",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"List after delete returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "let data;",
+              "try { data = pm.response.json(); } catch (e) { data = null; }",
+              "const id = Number(pm.collectionVariables.get(\"testDonationId\"));",
+              "pm.test(\"Test donation is no longer present\", () => {",
+              "    pm.expect(data).to.be.an(\"array\");",
+              "    pm.expect(data.some(d => d.id === id), `Donation ${id} still exists`).to.eql(false);",
+              "});",
+              "if (pm.response.code === 200 && Array.isArray(data) && !data.some(d => d.id === id)) {",
+              "    pm.collectionVariables.unset(\"testDonationId\");",
+              "    pm.collectionVariables.unset(\"testDonorName\");",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}

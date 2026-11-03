@@ -1,20 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Adnan\\OneDrive\\سطح المكتب\\api\\MyApi\\MyApi.csproj": {}
+    "C:\\Users\\abdallah\\Desktop\\مجلد جديد (6)\\api\\MyApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Adnan\\OneDrive\\سطح المكتب\\api\\MyApi\\MyApi.csproj": {
+    "C:\\Users\\abdallah\\Desktop\\مجلد جديد (6)\\api\\MyApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Adnan\\OneDrive\\سطح المكتب\\api\\MyApi\\MyApi.csproj",
+        "projectUniqueName": "C:\\Users\\abdallah\\Desktop\\مجلد جديد (6)\\api\\MyApi.csproj",
         "projectName": "MyApi",
-        "projectPath": "C:\\Users\\Adnan\\OneDrive\\سطح المكتب\\api\\MyApi\\MyApi.csproj",
-        "packagesPath": "C:\\Users\\Adnan\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Adnan\\OneDrive\\سطح المكتب\\api\\MyApi\\obj\\",
+        "projectPath": "C:\\Users\\abdallah\\Desktop\\مجلد جديد (6)\\api\\MyApi.csproj",
+        "packagesPath": "C:\\Users\\abdallah\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\abdallah\\Desktop\\مجلد جديد (6)\\api\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\Adnan\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\abdallah\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -26,7 +30,6 @@
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -41,11 +44,10 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.400"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.OpenApi": {
@@ -86,7 +88,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
